@@ -1,5 +1,5 @@
 import React from 'react';
-import { Github, Linkedin, Mail, Twitter } from 'lucide-react';
+import { Github, Linkedin, Mail, Twitter, Lock } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 
 const Footer: React.FC = () => {
@@ -40,9 +40,12 @@ const Footer: React.FC = () => {
 
         <div className="border-t border-gray-100 dark:border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
           <p>&copy; {currentYear} {profile.name}. All rights reserved.</p>
-          <div className="flex gap-6 mt-4 md:mt-0">
+          <div className="flex gap-6 mt-4 md:mt-0 items-center">
             <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Terms of Service</a>
+            <a href="/login" className="flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" aria-label="Admin Login">
+              <Lock size={12} />
+              <span>Admin</span>
+            </a>
           </div>
         </div>
       </div>

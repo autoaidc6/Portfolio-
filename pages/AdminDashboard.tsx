@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
-import { LogOut, Database, Save } from 'lucide-react';
+import { LogOut, Database, Save, Loader2 } from 'lucide-react';
 import { PROFILE, PROJECTS } from '../constants';
 
 const AdminDashboard: React.FC = () => {
@@ -10,12 +10,15 @@ const AdminDashboard: React.FC = () => {
   const { profile, projects, refreshData } = usePortfolio();
   const [activeTab, setActiveTab] = useState<'overview' | 'projects'>('overview');
   const [loading, setLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         navigate('/login');
+      } else {
+        setAuthLoading(false);
       }
     });
   }, [navigate]);
@@ -57,6 +60,14 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-bg">
+        <Loader2 className="animate-spin text-primary-600" size={32} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-dark-bg text-gray-900 dark:text-white">
       <nav className="bg-white dark:bg-dark-card shadow-sm border-b border-gray-200 dark:border-gray-700">
@@ -86,13 +97,13 @@ const AdminDashboard: React.FC = () => {
               <nav className="space-y-1">
                 <button
                   onClick={() => setActiveTab('overview')}
-                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium ${activeTab === 'overview' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'overview' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                 >
                   Overview
                 </button>
                 <button
                   onClick={() => setActiveTab('projects')}
-                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium ${activeTab === 'projects' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'projects' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                 >
                   Projects
                 </button>
@@ -113,9 +124,9 @@ const AdminDashboard: React.FC = () => {
                   <button
                     onClick={seedDatabase}
                     disabled={loading}
-                    className="flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md text-sm font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50"
                   >
-                    <Database size={16} />
+                    {loading ? <Loader2 className="animate-spin" size={16} /> : <Database size={16} />}
                     {loading ? 'Seeding...' : 'Seed Database from Constants'}
                   </button>
                   {message && <p className="mt-2 text-sm font-medium">{message}</p>}
@@ -127,7 +138,7 @@ const AdminDashboard: React.FC = () => {
               <div className="bg-white dark:bg-dark-card shadow rounded-lg overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                   <h3 className="text-lg font-medium">Projects ({projects.length})</h3>
-                  <button className="px-3 py-1.5 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700">
+                  <button className="px-3 py-1.5 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700 transition-colors">
                     Add New
                   </button>
                 </div>
