@@ -1,5 +1,5 @@
 import React from 'react';
-import { SKILLS } from '../constants';
+import { SKILLS, PROFILE } from '../constants';
 import { Briefcase, GraduationCap } from 'lucide-react';
 
 const About: React.FC = () => {
@@ -13,37 +13,39 @@ const About: React.FC = () => {
           <div>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">About Me</h2>
             <div className="prose dark:prose-invert text-gray-600 dark:text-gray-400 mb-8">
-              <p className="mb-4">
-                I'm a passionate Senior Frontend Engineer with over 6 years of experience in building scalable web applications. My journey started with a curiosity for how things work on the internet, which quickly evolved into a career obsession with clean code and user-centric design.
-              </p>
-              <p className="mb-4">
-                I've worked with startups and Fortune 500 companies, helping teams adopt modern frontend architecture and improve web performance. I love solving complex UI challenges and mentoring junior developers.
-              </p>
-              <p>
-                When I'm not coding, you can find me hiking, reading sci-fi novels, or experimenting with new coffee brewing methods.
-              </p>
+              {PROFILE.about.description.map((paragraph, index) => (
+                <p key={index} className="mb-4">
+                  {paragraph}
+                </p>
+              ))}
             </div>
 
             <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                 <div className="p-3 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-lg">
-                    <Briefcase size={24} />
-                 </div>
-                 <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white">Experience</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Senior Engineer at Tech Corp (2020 - Present)</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Frontend Dev at Startup Inc (2017 - 2020)</p>
-                 </div>
-              </div>
-              <div className="flex items-start gap-4">
-                 <div className="p-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-lg">
-                    <GraduationCap size={24} />
-                 </div>
-                 <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white">Education</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">BS Computer Science, University of Tech</p>
-                 </div>
-              </div>
+              {PROFILE.experience.map((exp, index) => (
+                <div key={index} className="flex items-start gap-4">
+                  <div className="p-3 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-lg">
+                      <Briefcase size={24} />
+                  </div>
+                  <div>
+                      <h4 className="font-bold text-gray-900 dark:text-white">{index === 0 ? "Experience" : ""}</h4>
+                      <p className="font-medium text-gray-800 dark:text-gray-200">{exp.role} at {exp.company}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{exp.period}</p>
+                  </div>
+                </div>
+              ))}
+              
+              {PROFILE.education.map((edu, index) => (
+                <div key={index} className="flex items-start gap-4">
+                  <div className="p-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-lg">
+                      <GraduationCap size={24} />
+                  </div>
+                  <div>
+                      <h4 className="font-bold text-gray-900 dark:text-white">{index === 0 ? "Education" : ""}</h4>
+                      <p className="font-medium text-gray-800 dark:text-gray-200">{edu.degree}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{edu.school} {edu.year ? `(${edu.year})` : ''}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

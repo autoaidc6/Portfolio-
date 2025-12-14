@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Menu, X, Moon, Sun, Github, Linkedin } from 'lucide-react';
+import { Menu, X, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
+import { PROFILE } from '../constants';
 
 const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -19,7 +20,7 @@ const Navbar: React.FC = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex-shrink-0">
             <a href="#" className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-purple-600 bg-clip-text text-transparent">
-              AlexDev.
+              {PROFILE.title}
             </a>
           </div>
           

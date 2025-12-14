@@ -34,3 +34,33 @@ export interface SocialLink {
   url: string;
   icon: React.ReactNode;
 }
+
+export interface Experience {
+  company: string;
+  role: string;
+  period: string;
+}
+
+export interface Education {
+  school: string;
+  degree: string;
+  year?: string;
+}
+
+export interface Profile {
+  name: string;
+  role: string;
+  title: string;
+  email: string;
+  social: {
+    github: string;
+    linkedin: string;
+    twitter: string;
+  };
+  about: {
+    summary: string;
+    description: string[];
+  };
+  experience: Experience[];
+  education: Education[];
+}

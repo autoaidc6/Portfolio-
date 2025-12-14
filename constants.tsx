@@ -1,6 +1,45 @@
 import React from 'react';
-import { Project, BlogPost, Skill } from './types';
+import { Project, BlogPost, Skill, Profile } from './types';
 import { Code2, Globe, Database, Cpu, Layout, Smartphone, Terminal, GitBranch } from 'lucide-react';
+
+export const PROFILE: Profile = {
+  name: "Alex Dev",
+  role: "Senior Frontend Engineer",
+  title: "AlexDev.",
+  email: "hello@alexdev.com",
+  social: {
+    github: "https://github.com",
+    linkedin: "https://linkedin.com",
+    twitter: "https://twitter.com",
+  },
+  about: {
+    summary: "I specialize in building accessible, pixel-perfect, and performant web applications using modern technologies like React, TypeScript, and Tailwind CSS.",
+    description: [
+      "I'm a passionate Senior Frontend Engineer with over 6 years of experience in building scalable web applications. My journey started with a curiosity for how things work on the internet, which quickly evolved into a career obsession with clean code and user-centric design.",
+      "I've worked with startups and Fortune 500 companies, helping teams adopt modern frontend architecture and improve web performance. I love solving complex UI challenges and mentoring junior developers.",
+      "When I'm not coding, you can find me hiking, reading sci-fi novels, or experimenting with new coffee brewing methods."
+    ]
+  },
+  experience: [
+    {
+      company: "Tech Corp",
+      role: "Senior Engineer",
+      period: "2020 - Present"
+    },
+    {
+      company: "Startup Inc",
+      role: "Frontend Dev",
+      period: "2017 - 2020"
+    }
+  ],
+  education: [
+    {
+      school: "University of Tech",
+      degree: "BS Computer Science",
+      year: "2016"
+    }
+  ]
+};
 
 export const PROJECTS: Project[] = [
   {

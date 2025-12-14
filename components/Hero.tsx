@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Download } from 'lucide-react';
+import { PROFILE } from '../constants';
 
 const Hero: React.FC = () => {
   return (
@@ -19,7 +20,7 @@ const Hero: React.FC = () => {
             className="flex-1 text-center md:text-left"
           >
             <h2 className="text-sm uppercase tracking-wider text-primary-600 font-semibold mb-4">
-              Senior Frontend Engineer
+              {PROFILE.role}
             </h2>
             <h1 className="text-5xl md:text-7xl font-bold mb-6 text-gray-900 dark:text-white tight-leading">
               Building digital <br className="hidden md:block"/>
@@ -28,7 +29,7 @@ const Hero: React.FC = () => {
               </span> that matter.
             </h1>
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto md:mx-0">
-              I specialize in building accessible, pixel-perfect, and performant web applications using modern technologies like React, TypeScript, and Tailwind CSS.
+              {PROFILE.about.summary}
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
