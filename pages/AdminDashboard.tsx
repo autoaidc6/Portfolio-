@@ -2,16 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
-import { LogOut, Database, Save, Loader2, Plus, ArrowLeft, Trash2, X, AlertCircle } from 'lucide-react';
-import { PROFILE, PROJECTS } from '../constants';
-import { Project, Profile } from '../types';
+import { LogOut, Database, Save, Loader2, Plus, ArrowLeft, Trash2, X, AlertCircle, FileText, Mail, Link as LinkIcon } from 'lucide-react';
+import { PROFILE, PROJECTS, BLOG_POSTS } from '../constants';
+import { Project, Profile, BlogPost } from '../types';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { profile, projects, refreshData } = usePortfolio();
+  const { profile, projects, blogs, refreshData } = usePortfolio();
   
   // UI State
-  const [activeTab, setActiveTab] = useState<'overview' | 'projects'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'blog' | 'contact'>('overview');
   const [authLoading, setAuthLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
@@ -20,7 +20,19 @@ const AdminDashboard: React.FC = () => {
   const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Partial<Project>>({});
 
-  // Profile Form State
+  // Blog Form State
+  const [isBlogFormOpen, setIsBlogFormOpen] = useState(false);
+  const [editingBlog, setEditingBlog] = useState<Partial<BlogPost>>({});
+
+  // Contact Form State
+  const [contactForm, setContactForm] = useState({
+    email: '',
+    github: '',
+    linkedin: '',
+    twitter: ''
+  });
+
+  // Profile Form State (Raw JSON)
   const [profileJson, setProfileJson] = useState<string>('');
 
   useEffect(() => {
@@ -36,6 +48,12 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     if (profile) {
       setProfileJson(JSON.stringify(profile, null, 2));
+      setContactForm({
+        email: profile.email || '',
+        github: profile.social?.github || '',
+        linkedin: profile.social?.linkedin || '',
+        twitter: profile.social?.twitter || ''
+      });
     }
   }, [profile]);
 
@@ -55,16 +73,24 @@ const AdminDashboard: React.FC = () => {
     
     setActionLoading(true);
     try {
+      // Seed Profile
       const { error: profileError } = await supabase
         .from('profile')
         .upsert({ id: 1, data: PROFILE });
 
+      // Seed Projects
       await supabase.from('projects').delete().neq('id', 0);
       const { error: projectsError } = await supabase
         .from('projects')
         .insert(PROJECTS);
 
-      if (profileError || projectsError) throw new Error('Failed to seed data');
+      // Seed Blogs
+      await supabase.from('blogs').delete().neq('id', 0);
+      const { error: blogsError } = await supabase
+        .from('blogs')
+        .insert(BLOG_POSTS);
+
+      if (profileError || projectsError || blogsError) throw new Error('Failed to seed data');
       
       showMessage('success', 'Database seeded successfully!');
       refreshData();
@@ -75,8 +101,8 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // --- Profile Logic ---
-  const handleSaveProfile = async () => {
+  // --- Profile/Contact Logic ---
+  const handleSaveProfileRaw = async () => {
     setActionLoading(true);
     try {
       let parsedProfile;
@@ -96,6 +122,36 @@ const AdminDashboard: React.FC = () => {
       refreshData();
     } catch (e: any) {
       showMessage('error', e.message || 'Error updating profile');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      const newProfile = {
+        ...profile,
+        email: contactForm.email,
+        social: {
+          ...profile.social,
+          github: contactForm.github,
+          linkedin: contactForm.linkedin,
+          twitter: contactForm.twitter
+        }
+      };
+
+      const { error } = await supabase
+        .from('profile')
+        .upsert({ id: 1, data: newProfile });
+
+      if (error) throw error;
+      
+      showMessage('success', 'Contact info updated successfully!');
+      refreshData();
+    } catch (e: any) {
+      showMessage('error', e.message || 'Error updating contact info');
     } finally {
       setActionLoading(false);
     }
@@ -134,23 +190,16 @@ const AdminDashboard: React.FC = () => {
     setActionLoading(true);
 
     try {
-      // Prepare data for submission
       const projectData = {
         ...editingProject,
-        // Ensure arrays are arrays
         tags: Array.isArray(editingProject.tags) ? editingProject.tags : [],
         features: Array.isArray(editingProject.features) ? editingProject.features : [],
         gallery: Array.isArray(editingProject.gallery) ? editingProject.gallery : [],
       };
 
-      // Remove ID if it's undefined (for new creation)
-      if (!projectData.id) {
-        delete projectData.id;
-      }
+      if (!projectData.id) delete projectData.id;
 
-      const { error } = await supabase
-        .from('projects')
-        .upsert(projectData as any); // Type assertion needed for partial updates
+      const { error } = await supabase.from('projects').upsert(projectData as any);
 
       if (error) throw error;
 
@@ -168,12 +217,66 @@ const AdminDashboard: React.FC = () => {
     setEditingProject(prev => ({ ...prev, [field]: value }));
   };
 
-  const updateArrayField = (field: 'tags' | 'features', value: string) => {
-    // Split by comma or newline depending on field
+  const updateProjectArrayField = (field: 'tags' | 'features', value: string) => {
     const separator = field === 'features' ? '\n' : ',';
     const array = value.split(separator).map(item => item.trim()).filter(item => item !== '');
     updateProjectField(field, array);
   };
+
+  // --- Blog Logic ---
+  const openNewBlogForm = () => {
+    setEditingBlog({ date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) });
+    setIsBlogFormOpen(true);
+  };
+
+  const openEditBlogForm = (blog: BlogPost) => {
+    setEditingBlog({ ...blog });
+    setIsBlogFormOpen(true);
+  };
+
+  const handleDeleteBlog = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    
+    setActionLoading(true);
+    try {
+      const { error } = await supabase.from('blogs').delete().eq('id', id);
+      if (error) throw error;
+      
+      showMessage('success', 'Post deleted successfully');
+      refreshData();
+    } catch (e: any) {
+      showMessage('error', e.message || 'Error deleting post');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveBlog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading(true);
+
+    try {
+      const blogData = { ...editingBlog };
+      if (!blogData.id) delete blogData.id;
+
+      const { error } = await supabase.from('blogs').upsert(blogData as any);
+
+      if (error) throw error;
+
+      showMessage('success', `Post ${editingBlog.id ? 'updated' : 'created'} successfully!`);
+      setIsBlogFormOpen(false);
+      refreshData();
+    } catch (e: any) {
+      showMessage('error', e.message || 'Error saving post');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const updateBlogField = (field: keyof BlogPost, value: any) => {
+    setEditingBlog(prev => ({ ...prev, [field]: value }));
+  };
+
 
   if (authLoading) {
     return (
@@ -183,7 +286,9 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  // --- Project Form Render ---
+  // --- Forms Rendering ---
+
+  // Project Form
   if (isProjectFormOpen) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-dark-bg text-gray-900 dark:text-white p-6">
@@ -280,7 +385,7 @@ const AdminDashboard: React.FC = () => {
                 <input 
                   type="text" 
                   value={editingProject.tags?.join(', ') || ''}
-                  onChange={e => updateArrayField('tags', e.target.value)}
+                  onChange={e => updateProjectArrayField('tags', e.target.value)}
                   placeholder="React, TypeScript, Tailwind"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
                 />
@@ -290,7 +395,7 @@ const AdminDashboard: React.FC = () => {
                 <textarea 
                   rows={4}
                   value={editingProject.features?.join('\n') || ''}
-                  onChange={e => updateArrayField('features', e.target.value)}
+                  onChange={e => updateProjectArrayField('features', e.target.value)}
                   placeholder="Real-time tracking&#10;Dark mode support"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
                 />
@@ -312,6 +417,102 @@ const AdminDashboard: React.FC = () => {
               >
                 {actionLoading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                 Save Project
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Blog Form
+  if (isBlogFormOpen) {
+    return (
+      <div className="min-h-screen bg-gray-100 dark:bg-dark-bg text-gray-900 dark:text-white p-6">
+        <div className="max-w-2xl mx-auto bg-white dark:bg-dark-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+            <h2 className="text-xl font-bold">{editingBlog.id ? 'Edit Post' : 'New Post'}</h2>
+            <button 
+              onClick={() => setIsBlogFormOpen(false)}
+              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          
+          <form onSubmit={handleSaveBlog} className="p-6 space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+              <input 
+                type="text" 
+                required
+                value={editingBlog.title || ''}
+                onChange={e => updateBlogField('title', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Excerpt</label>
+              <textarea 
+                required
+                rows={3}
+                value={editingBlog.excerpt || ''}
+                onChange={e => updateBlogField('excerpt', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editingBlog.date || ''}
+                  onChange={e => updateBlogField('date', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Read Time</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editingBlog.readTime || ''}
+                  onChange={e => updateBlogField('readTime', e.target.value)}
+                  placeholder="5 min read"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Slug</label>
+              <input 
+                type="text" 
+                required
+                value={editingBlog.slug || ''}
+                onChange={e => updateBlogField('slug', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+
+            <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700">
+              <button 
+                type="button" 
+                onClick={() => setIsBlogFormOpen(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={actionLoading}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2 transition-colors disabled:opacity-50"
+              >
+                {actionLoading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                Save Post
               </button>
             </div>
           </form>
@@ -360,15 +561,27 @@ const AdminDashboard: React.FC = () => {
               <nav className="space-y-1">
                 <button
                   onClick={() => setActiveTab('overview')}
-                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'overview' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'overview' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                 >
-                  Overview & Profile
+                  <Database size={16} /> Overview
                 </button>
                 <button
                   onClick={() => setActiveTab('projects')}
-                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'projects' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'projects' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                 >
-                  Projects
+                  <FileText size={16} /> Projects
+                </button>
+                <button
+                  onClick={() => setActiveTab('blog')}
+                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'blog' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                >
+                  <FileText size={16} /> Blog Posts
+                </button>
+                <button
+                  onClick={() => setActiveTab('contact')}
+                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'contact' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                >
+                  <Mail size={16} /> Contact Info
                 </button>
               </nav>
               
@@ -393,21 +606,21 @@ const AdminDashboard: React.FC = () => {
               <div className="space-y-6">
                 <div className="bg-white dark:bg-dark-card shadow rounded-lg p-6">
                   <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-medium">Profile Configuration</h2>
+                    <h2 className="text-lg font-medium">Raw Profile Data</h2>
                     <button 
-                      onClick={handleSaveProfile}
+                      onClick={handleSaveProfileRaw}
                       disabled={actionLoading}
                       className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
                     >
                       {actionLoading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                      Save Profile
+                      Save JSON
                     </button>
                   </div>
                   
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 rounded-lg p-4 mb-4">
                     <p className="text-sm text-blue-800 dark:text-blue-300 flex gap-2">
                       <AlertCircle size={18} className="flex-shrink-0" />
-                      <span>Edit the raw JSON below to update your profile information, experience, education, and social links. This gives you full control over the data structure.</span>
+                      <span>Advanced: Edit the raw JSON below for full control. For basic updates, use the other tabs.</span>
                     </p>
                   </div>
 
@@ -435,7 +648,7 @@ const AdminDashboard: React.FC = () => {
                 
                 {projects.length === 0 ? (
                   <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                    No projects found. Click "Add New" to create one.
+                    No projects found.
                   </div>
                 ) : (
                   <ul className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -450,15 +663,10 @@ const AdminDashboard: React.FC = () => {
                           />
                           <div>
                             <p className="text-sm font-bold text-gray-900 dark:text-white">{project.title}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 max-w-xs md:max-w-md">{project.description}</p>
-                            <div className="flex gap-2 mt-1">
-                              {project.tags.slice(0, 3).map(tag => (
-                                <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-gray-600 dark:text-gray-400">{tag}</span>
-                              ))}
-                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 max-w-xs">{project.description}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 self-end sm:self-auto">
+                        <div className="flex items-center gap-3">
                           <button 
                             onClick={() => openEditProjectForm(project)}
                             className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -468,7 +676,6 @@ const AdminDashboard: React.FC = () => {
                           <button 
                             onClick={() => handleDeleteProject(project.id)}
                             className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
-                            title="Delete"
                           >
                             <Trash2 size={18} />
                           </button>
@@ -479,6 +686,125 @@ const AdminDashboard: React.FC = () => {
                 )}
               </div>
             )}
+
+            {activeTab === 'blog' && (
+              <div className="bg-white dark:bg-dark-card shadow rounded-lg overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                  <h3 className="text-lg font-medium">Blog Posts ({blogs.length})</h3>
+                  <button 
+                    onClick={openNewBlogForm}
+                    className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors flex items-center gap-2"
+                  >
+                    <Plus size={16} /> Add New
+                  </button>
+                </div>
+                
+                {blogs.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                    No blog posts found.
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {blogs.map((blog) => (
+                      <li key={blog.id} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{blog.title}</p>
+                          <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <span>{blog.date}</span>
+                            <span>{blog.readTime}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => openEditBlogForm(blog)}
+                            className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteBlog(blog.id)}
+                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'contact' && (
+              <div className="bg-white dark:bg-dark-card shadow rounded-lg p-6">
+                <h2 className="text-lg font-medium mb-6">Contact Information</h2>
+                <form onSubmit={handleSaveContact} className="space-y-6 max-w-2xl">
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <Mail size={16} /> Email Address
+                    </label>
+                    <input 
+                      type="email" 
+                      value={contactForm.email}
+                      onChange={e => setContactForm({...contactForm, email: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white">Social Links</h3>
+                    
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                         GitHub URL
+                      </label>
+                      <input 
+                        type="text" 
+                        value={contactForm.github}
+                        onChange={e => setContactForm({...contactForm, github: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                         LinkedIn URL
+                      </label>
+                      <input 
+                        type="text" 
+                        value={contactForm.linkedin}
+                        onChange={e => setContactForm({...contactForm, linkedin: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                         Twitter URL
+                      </label>
+                      <input 
+                        type="text" 
+                        value={contactForm.twitter}
+                        onChange={e => setContactForm({...contactForm, twitter: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <button 
+                      type="submit" 
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                      {actionLoading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                      Update Contact Info
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
           </div>
         </div>
       </div>
