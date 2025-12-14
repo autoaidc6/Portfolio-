@@ -1,9 +1,12 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { PROJECTS } from '../constants';
-import { Github, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Github, ExternalLink, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
+import ProjectModal from './ProjectModal';
+import { Project } from '../types';
 
 const Projects: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -15,6 +18,15 @@ const Projects: React.FC = () => {
         current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
       }
     }
+  };
+
+  const handleCardClick = (project: Project) => {
+    setSelectedProject(project);
+  };
+
+  // Prevent event bubbling for direct link clicks if user wants to go directly without opening modal
+  const handleLinkClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
   };
 
   return (
@@ -53,26 +65,24 @@ const Projects: React.FC = () => {
           {PROJECTS.map((project) => (
             <div 
               key={project.id} 
-              className="min-w-[85vw] md:min-w-[45vw] lg:min-w-[30vw] snap-start bg-white dark:bg-dark-card rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800 transition-all hover:shadow-2xl hover:-translate-y-1"
+              onClick={() => handleCardClick(project)}
+              className="group min-w-[85vw] md:min-w-[45vw] lg:min-w-[30vw] snap-start bg-white dark:bg-dark-card rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800 transition-all hover:shadow-2xl hover:-translate-y-1 cursor-pointer"
             >
-              <div className="relative group h-48 sm:h-64 overflow-hidden">
+              <div className="relative h-48 sm:h-64 overflow-hidden">
                 <img 
                   src={project.image} 
                   alt={project.title} 
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
-                  <a href={project.githubUrl} className="p-3 bg-white text-gray-900 rounded-full hover:bg-primary-500 hover:text-white transition-colors">
-                    <Github size={20} />
-                  </a>
-                  <a href={project.demoUrl} className="p-3 bg-white text-gray-900 rounded-full hover:bg-primary-500 hover:text-white transition-colors">
-                    <ExternalLink size={20} />
-                  </a>
+                  <span className="text-white font-medium flex items-center gap-2 px-4 py-2 border-2 border-white rounded-full">
+                    <Maximize2 size={16} /> View Details
+                  </span>
                 </div>
               </div>
               
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{project.title}</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary-600 transition-colors">{project.title}</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">{project.description}</p>
                 <div className="flex flex-wrap gap-2 mb-6">
                   {project.tags.map((tag) => (
@@ -85,10 +95,22 @@ const Projects: React.FC = () => {
                   ))}
                 </div>
                 <div className="flex gap-4">
-                  <a href={project.demoUrl} className="flex-1 text-center py-2 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium hover:opacity-90 transition-opacity">
+                  <a 
+                    href={project.demoUrl} 
+                    onClick={handleLinkClick}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-center py-2 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium hover:opacity-90 transition-opacity"
+                  >
                     Live Demo
                   </a>
-                  <a href={project.githubUrl} className="flex-1 text-center py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <a 
+                    href={project.githubUrl}
+                    onClick={handleLinkClick} 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-center py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
                     Source
                   </a>
                 </div>
@@ -100,6 +122,12 @@ const Projects: React.FC = () => {
           <div className="min-w-[1px] opacity-0"></div>
         </div>
       </div>
+
+      <ProjectModal 
+        project={selectedProject} 
+        isOpen={!!selectedProject} 
+        onClose={() => setSelectedProject(null)} 
+      />
     </section>
   );
 };

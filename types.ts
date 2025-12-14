@@ -4,10 +4,14 @@ export interface Project {
   id: number;
   title: string;
   description: string;
+  longDescription?: string;
+  features?: string[];
   image: string;
+  gallery?: string[];
   tags: string[];
   demoUrl: string;
   githubUrl: string;
+  caseStudyUrl?: string;
 }
 
 export interface BlogPost {

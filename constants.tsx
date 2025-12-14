@@ -7,16 +7,40 @@ export const PROJECTS: Project[] = [
     id: 1,
     title: "E-Commerce Dashboard",
     description: "A comprehensive analytics dashboard for online retailers featuring real-time data visualization and inventory management.",
+    longDescription: "This project is a high-performance admin dashboard designed for high-volume e-commerce stores. It aggregates data from multiple sales channels to provide real-time insights into revenue, customer acquisition cost, and inventory levels. We utilized D3.js for complex data visualization and implemented a custom caching layer to handle large datasets efficiently.",
+    features: [
+      "Real-time revenue tracking with WebSocket updates",
+      "Interactive heatmaps for regional sales analysis",
+      "Automated inventory low-stock alerts",
+      "Role-based access control (RBAC) for team management"
+    ],
     image: "https://picsum.photos/800/600?random=1",
+    gallery: [
+      "https://picsum.photos/800/600?random=101",
+      "https://picsum.photos/800/600?random=102",
+      "https://picsum.photos/800/600?random=103"
+    ],
     tags: ["React", "TypeScript", "D3.js", "Tailwind"],
     demoUrl: "#",
-    githubUrl: "#"
+    githubUrl: "#",
+    caseStudyUrl: "#"
   },
   {
     id: 2,
     title: "AI Task Manager",
     description: "Smart task prioritization tool utilizing Gemini API to categorize and schedule daily engineering tasks automatically.",
+    longDescription: "An intelligent productivity tool that uses Generative AI to parse unstructured brain dumps into structured tasks. The system analyzes task complexity and urgency to auto-schedule the developer's day. It features a natural language interface where users can simply speak or type their thoughts, and the AI organizes them into a kanban board.",
+    features: [
+      "Natural Language Processing for task entry",
+      "Auto-categorization using Gemini 1.5 Pro",
+      "Smart scheduling algorithm based on estimated effort",
+      "Daily stand-up summary generation"
+    ],
     image: "https://picsum.photos/800/600?random=2",
+    gallery: [
+      "https://picsum.photos/800/600?random=104",
+      "https://picsum.photos/800/600?random=105"
+    ],
     tags: ["Next.js", "Gemini API", "Prisma", "PostgreSQL"],
     demoUrl: "#",
     githubUrl: "#"
@@ -25,16 +49,39 @@ export const PROJECTS: Project[] = [
     id: 3,
     title: "Crypto Portfolio Tracker",
     description: "Real-time cryptocurrency tracking application with price alerts and portfolio performance charts.",
+    longDescription: "A mobile-first progressive web app (PWA) that allows users to track their cryptocurrency investments across multiple wallets and exchanges. It connects to various public APIs to fetch live prices and calculates profit/loss in real-time. The app includes a customizable alert system that pushes notifications via Web Workers.",
+    features: [
+      "Multi-exchange API integration",
+      "Real-time price WebSocket feeds",
+      "Push notifications for price thresholds",
+      "Offline mode support with PWA caching"
+    ],
     image: "https://picsum.photos/800/600?random=3",
+    gallery: [
+      "https://picsum.photos/800/600?random=106",
+      "https://picsum.photos/800/600?random=107"
+    ],
     tags: ["React Native", "Redux", "Node.js", "WebSockets"],
     demoUrl: "#",
-    githubUrl: "#"
+    githubUrl: "#",
+    caseStudyUrl: "#"
   },
   {
     id: 4,
     title: "Social Media Scheduler",
     description: "A platform to schedule and automate posts across Twitter, LinkedIn, and Instagram with built-in image editor.",
+    longDescription: "A SaaS platform designed for social media managers to streamline their workflow. It supports scheduling posts for multiple platforms from a single calendar view. The built-in image editor allows for quick cropping and filtering using WebGL, ensuring images are optimized for each platform's requirements before posting.",
+    features: [
+      "Drag-and-drop calendar interface",
+      "In-browser image editing with WebGL",
+      "Team collaboration and approval workflows",
+      "Analytics reporting for post engagement"
+    ],
     image: "https://picsum.photos/800/600?random=4",
+    gallery: [
+      "https://picsum.photos/800/600?random=108",
+      "https://picsum.photos/800/600?random=109"
+    ],
     tags: ["Vue.js", "Firebase", "Cloud Functions"],
     demoUrl: "#",
     githubUrl: "#"
