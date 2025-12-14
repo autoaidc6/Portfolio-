@@ -1,9 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Download } from 'lucide-react';
-import { PROFILE } from '../constants';
+import { usePortfolio } from '../context/PortfolioContext';
 
 const Hero: React.FC = () => {
+  const { profile } = usePortfolio();
+
   return (
     <section id="home" className="min-h-screen flex items-center justify-center pt-16 relative overflow-hidden">
       {/* Background Decor */}
@@ -20,7 +22,7 @@ const Hero: React.FC = () => {
             className="flex-1 text-center md:text-left"
           >
             <h2 className="text-sm uppercase tracking-wider text-primary-600 font-semibold mb-4">
-              {PROFILE.role}
+              {profile.role}
             </h2>
             <h1 className="text-5xl md:text-7xl font-bold mb-6 text-gray-900 dark:text-white tight-leading">
               Building digital <br className="hidden md:block"/>
@@ -29,7 +31,7 @@ const Hero: React.FC = () => {
               </span> that matter.
             </h1>
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto md:mx-0">
-              {PROFILE.about.summary}
+              {profile.about.summary}
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">

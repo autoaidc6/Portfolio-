@@ -1,12 +1,13 @@
 import React, { useRef, useState } from 'react';
-import { PROJECTS } from '../constants';
-import { Github, ExternalLink, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
+import { Github, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
 import ProjectModal from './ProjectModal';
 import { Project } from '../types';
+import { usePortfolio } from '../context/PortfolioContext';
 
 const Projects: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const { projects } = usePortfolio();
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -24,10 +25,12 @@ const Projects: React.FC = () => {
     setSelectedProject(project);
   };
 
-  // Prevent event bubbling for direct link clicks if user wants to go directly without opening modal
+  // Prevent event bubbling for direct link clicks
   const handleLinkClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
+
+  if (projects.length === 0) return null;
 
   return (
     <section id="projects" className="py-24 bg-gray-50 dark:bg-dark-bg transition-colors duration-300">
@@ -62,7 +65,7 @@ const Projects: React.FC = () => {
           ref={scrollRef}
           className="flex gap-6 overflow-x-auto pb-8 snap-x snap-mandatory no-scrollbar"
         >
-          {PROJECTS.map((project) => (
+          {projects.map((project) => (
             <div 
               key={project.id} 
               onClick={() => handleCardClick(project)}

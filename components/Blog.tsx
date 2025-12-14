@@ -1,8 +1,12 @@
 import React from 'react';
-import { BLOG_POSTS } from '../constants';
 import { ArrowRight, Calendar, Clock } from 'lucide-react';
+import { usePortfolio } from '../context/PortfolioContext';
 
 const Blog: React.FC = () => {
+  const { blogs } = usePortfolio();
+
+  if (blogs.length === 0) return null;
+
   return (
     <section id="blog" className="py-24 bg-gray-50 dark:bg-dark-bg transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -14,7 +18,7 @@ const Blog: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {BLOG_POSTS.map((post) => (
+          {blogs.map((post) => (
             <article 
               key={post.id} 
               className="bg-white dark:bg-dark-card p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 hover:shadow-xl transition-all duration-300 flex flex-col h-full"

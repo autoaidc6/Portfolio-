@@ -1,23 +1,21 @@
 import React from 'react';
-import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import Projects from './components/Projects';
-import About from './components/About';
-import Blog from './components/Blog';
-import Footer from './components/Footer';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import AdminDashboard from './pages/AdminDashboard';
+import { PortfolioProvider } from './context/PortfolioContext';
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors duration-300">
-      <Navbar />
-      <main>
-        <Hero />
-        <Projects />
-        <About />
-        <Blog />
-      </main>
-      <Footer />
-    </div>
+    <PortfolioProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+        </Routes>
+      </Router>
+    </PortfolioProvider>
   );
 }
 
