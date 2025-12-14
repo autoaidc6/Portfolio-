@@ -1,6 +1,7 @@
 import React from 'react';
 import { Github, Linkedin, Mail, Twitter, Lock } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
+import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -42,10 +43,10 @@ const Footer: React.FC = () => {
           <p>&copy; {currentYear} {profile.name}. All rights reserved.</p>
           <div className="flex gap-6 mt-4 md:mt-0 items-center">
             <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Privacy Policy</a>
-            <a href="/login" className="flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" aria-label="Admin Login">
+            <Link to="/login" className="flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" aria-label="Admin Login">
               <Lock size={12} />
               <span>Admin</span>
-            </a>
+            </Link>
           </div>
         </div>
       </div>
