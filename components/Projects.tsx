@@ -4,6 +4,14 @@ import ProjectModal from './ProjectModal';
 import { Project } from '../types';
 import { usePortfolio } from '../context/PortfolioContext';
 
+const formatUrl = (url: string) => {
+  if (!url) return '#';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('mailto:')) return url;
+  if (url.startsWith('#')) return url;
+  if (url.startsWith('/')) return url;
+  return `https://${url}`;
+};
+
 const Projects: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -99,7 +107,7 @@ const Projects: React.FC = () => {
                 </div>
                 <div className="flex gap-4">
                   <a 
-                    href={project.demoUrl} 
+                    href={formatUrl(project.demoUrl)} 
                     onClick={handleLinkClick}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -108,7 +116,7 @@ const Projects: React.FC = () => {
                     Live Demo
                   </a>
                   <a 
-                    href={project.githubUrl}
+                    href={formatUrl(project.githubUrl)}
                     onClick={handleLinkClick} 
                     target="_blank"
                     rel="noopener noreferrer"

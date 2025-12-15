@@ -3,6 +3,14 @@ import { Github, Linkedin, Mail, Twitter, Lock } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 import { Link } from 'react-router-dom';
 
+const formatUrl = (url: string) => {
+  if (!url) return '#';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('mailto:')) return url;
+  if (url.startsWith('#')) return url;
+  if (url.startsWith('/')) return url;
+  return `https://${url}`;
+};
+
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const { profile } = usePortfolio();
@@ -20,15 +28,15 @@ const Footer: React.FC = () => {
           </div>
 
           <div className="flex gap-6">
-            <a href={profile.social.github} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary-600 dark:hover:text-white transition-colors">
+            <a href={formatUrl(profile.social.github)} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary-600 dark:hover:text-white transition-colors">
               <span className="sr-only">GitHub</span>
               <Github size={24} />
             </a>
-            <a href={profile.social.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 dark:hover:text-white transition-colors">
+            <a href={formatUrl(profile.social.linkedin)} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 dark:hover:text-white transition-colors">
               <span className="sr-only">LinkedIn</span>
               <Linkedin size={24} />
             </a>
-            <a href={profile.social.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-sky-500 dark:hover:text-white transition-colors">
+            <a href={formatUrl(profile.social.twitter)} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-sky-500 dark:hover:text-white transition-colors">
               <span className="sr-only">Twitter</span>
               <Twitter size={24} />
             </a>

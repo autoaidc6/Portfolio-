@@ -9,6 +9,14 @@ interface ProjectModalProps {
   onClose: () => void;
 }
 
+const formatUrl = (url: string) => {
+  if (!url) return '#';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('mailto:')) return url;
+  if (url.startsWith('#')) return url;
+  if (url.startsWith('/')) return url;
+  return `https://${url}`;
+};
+
 const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onClose }) => {
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -119,7 +127,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onClose })
 
                     <section className="flex flex-col gap-3">
                       <a 
-                        href={project.demoUrl} 
+                        href={formatUrl(project.demoUrl)} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold transition-colors"
@@ -127,7 +135,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onClose })
                         <ExternalLink size={20} /> View Live Demo
                       </a>
                       <a 
-                        href={project.githubUrl} 
+                        href={formatUrl(project.githubUrl)} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 w-full py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold transition-colors border border-gray-200 dark:border-gray-600"
@@ -136,7 +144,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onClose })
                       </a>
                       {project.caseStudyUrl && (
                         <a 
-                          href={project.caseStudyUrl}
+                          href={formatUrl(project.caseStudyUrl)}
                           className="flex items-center justify-center gap-2 w-full py-3 border-2 border-primary-100 dark:border-primary-900/30 hover:border-primary-500 dark:hover:border-primary-500 text-primary-600 dark:text-primary-400 rounded-lg font-semibold transition-colors"
                         >
                           <FileText size={20} /> Read Case Study
