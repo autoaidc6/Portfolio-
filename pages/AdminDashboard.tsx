@@ -498,6 +498,18 @@ const AdminDashboard: React.FC = () => {
               />
             </div>
 
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">External Link (Optional)</label>
+              <input 
+                type="text" 
+                value={editingBlog.link || ''}
+                onChange={e => updateBlogField('link', e.target.value)}
+                placeholder="https://medium.com/..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+              <p className="text-xs text-gray-500">If provided, clicking the post will navigate to this URL.</p>
+            </div>
+
             <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700">
               <button 
                 type="button" 

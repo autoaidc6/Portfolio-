@@ -134,7 +134,8 @@ export const BLOG_POSTS: BlogPost[] = [
     excerpt: "A deep dive into the architecture of RSC and how it changes the way we build modern web applications.",
     date: "Oct 12, 2023",
     readTime: "5 min read",
-    slug: "react-server-components"
+    slug: "react-server-components",
+    link: "https://react.dev/blog"
   },
   {
     id: 2,
@@ -142,7 +143,8 @@ export const BLOG_POSTS: BlogPost[] = [
     excerpt: "Analyzing the performance and developer experience trade-offs between utility-first CSS and styled-components.",
     date: "Nov 03, 2023",
     readTime: "4 min read",
-    slug: "tailwind-vs-css-in-js"
+    slug: "tailwind-vs-css-in-js",
+    link: "https://tailwindcss.com/blog"
   },
   {
     id: 3,
@@ -150,7 +152,8 @@ export const BLOG_POSTS: BlogPost[] = [
     excerpt: "Key strategies for improving Core Web Vitals, from image optimization to code splitting strategies.",
     date: "Dec 15, 2023",
     readTime: "7 min read",
-    slug: "web-performance-2024"
+    slug: "web-performance-2024",
+    link: "https://web.dev/blog"
   }
 ];
 

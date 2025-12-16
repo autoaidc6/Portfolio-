@@ -21,6 +21,7 @@ export interface BlogPost {
   date: string;
   readTime: string;
   slug: string;
+  link?: string;
 }
 
 export interface Skill {

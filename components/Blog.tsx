@@ -2,6 +2,14 @@ import React from 'react';
 import { ArrowRight, Calendar, Clock } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 
+const formatUrl = (url: string) => {
+  if (!url) return '#';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('mailto:')) return url;
+  if (url.startsWith('#')) return url;
+  if (url.startsWith('/')) return url;
+  return `https://${url}`;
+};
+
 const Blog: React.FC = () => {
   const { blogs } = usePortfolio();
 
@@ -18,36 +26,44 @@ const Blog: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {blogs.map((post) => (
-            <article 
-              key={post.id} 
-              className="bg-white dark:bg-dark-card p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 hover:shadow-xl transition-all duration-300 flex flex-col h-full"
-            >
-              <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-4">
-                <span className="flex items-center gap-1">
-                  <Calendar size={14} /> {post.date}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock size={14} /> {post.readTime}
-                </span>
-              </div>
-              
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-primary-600 transition-colors">
-                <a href={`#blog/${post.slug}`}>{post.title}</a>
-              </h3>
-              
-              <p className="text-gray-600 dark:text-gray-400 mb-6 flex-grow">
-                {post.excerpt}
-              </p>
-              
-              <a 
-                href={`#blog/${post.slug}`} 
-                className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium transition-colors mt-auto"
+          {blogs.map((post) => {
+            const postLink = post.link ? formatUrl(post.link) : `#blog/${post.slug}`;
+            const target = post.link ? "_blank" : "_self";
+            const rel = post.link ? "noopener noreferrer" : "";
+
+            return (
+              <article 
+                key={post.id} 
+                className="bg-white dark:bg-dark-card p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 hover:shadow-xl transition-all duration-300 flex flex-col h-full"
               >
-                Read Article <ArrowRight size={16} className="ml-1" />
-              </a>
-            </article>
-          ))}
+                <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-4">
+                  <span className="flex items-center gap-1">
+                    <Calendar size={14} /> {post.date}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock size={14} /> {post.readTime}
+                  </span>
+                </div>
+                
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-primary-600 transition-colors">
+                  <a href={postLink} target={target} rel={rel}>{post.title}</a>
+                </h3>
+                
+                <p className="text-gray-600 dark:text-gray-400 mb-6 flex-grow">
+                  {post.excerpt}
+                </p>
+                
+                <a 
+                  href={postLink}
+                  target={target}
+                  rel={rel}
+                  className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium transition-colors mt-auto"
+                >
+                  Read Article <ArrowRight size={16} className="ml-1" />
+                </a>
+              </article>
+            );
+          })}
         </div>
 
         <div className="text-center mt-12">

@@ -34,6 +34,7 @@ create table blogs (
   date text not null,
   "readTime" text not null,
   slug text not null,
+  link text, -- optional external URL
   content text -- optional for full blog content
 );
 
