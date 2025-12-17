@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Github, Maximize2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Github, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProjectModal from './ProjectModal';
 import { Project } from '../types';
 import { usePortfolio } from '../context/PortfolioContext';
@@ -80,12 +80,49 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
 };
 
 const Projects: React.FC = () => {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
   const { projects } = usePortfolio();
 
   const handleCardClick = (project: Project) => {
     setSelectedProject(project);
   };
+
+  const scrollManual = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = scrollRef.current.clientWidth * 0.5;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    let animationId: number;
+
+    const scroll = () => {
+      // Only auto-scroll if not hovered
+      if (!isHovered && scrollContainer) {
+        // If we've scrolled past the first set of items (the seamless loop point)
+        // scrollWidth is the total width of content (2x sets), so we reset at half.
+        if (scrollContainer.scrollLeft >= scrollContainer.scrollWidth / 2) {
+          scrollContainer.scrollLeft = 0;
+        } else {
+          scrollContainer.scrollLeft += 1;
+        }
+      }
+      animationId = requestAnimationFrame(scroll);
+    };
+
+    animationId = requestAnimationFrame(scroll);
+
+    return () => cancelAnimationFrame(animationId);
+  }, [isHovered, projects]);
 
   if (projects.length === 0) return null;
 
@@ -101,19 +138,44 @@ const Projects: React.FC = () => {
       </div>
 
       {/* Looping Carousel Container */}
-      <div className="flex overflow-hidden group pb-8">
-        {/* Strip 1 */}
-        <div className="flex gap-6 pr-6 animate-scroll min-w-full shrink-0 items-stretch">
-          {projects.map((project) => (
-            <ProjectCard key={`p1-${project.id}`} project={project} onClick={handleCardClick} />
-          ))}
+      <div 
+        className="relative group"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div 
+          ref={scrollRef} 
+          className="flex overflow-x-hidden no-scrollbar"
+        >
+          {/* Strip 1 */}
+          <div className="flex gap-6 pr-6 min-w-full shrink-0 items-stretch">
+            {projects.map((project) => (
+              <ProjectCard key={`p1-${project.id}`} project={project} onClick={handleCardClick} />
+            ))}
+          </div>
+          {/* Strip 2 (Duplicate for infinite effect) */}
+          <div className="flex gap-6 pr-6 min-w-full shrink-0 items-stretch" aria-hidden="true">
+            {projects.map((project) => (
+              <ProjectCard key={`p2-${project.id}`} project={project} onClick={handleCardClick} />
+            ))}
+          </div>
         </div>
-        {/* Strip 2 (Duplicate for infinite effect) */}
-        <div className="flex gap-6 pr-6 animate-scroll min-w-full shrink-0 items-stretch" aria-hidden="true">
-          {projects.map((project) => (
-            <ProjectCard key={`p2-${project.id}`} project={project} onClick={handleCardClick} />
-          ))}
-        </div>
+
+        {/* Navigation Arrows */}
+        <button 
+          onClick={() => scrollManual('left')}
+          className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/90 dark:bg-dark-card/90 shadow-lg border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-10"
+          aria-label="Scroll left"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <button 
+          onClick={() => scrollManual('right')}
+          className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/90 dark:bg-dark-card/90 shadow-lg border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-10"
+          aria-label="Scroll right"
+        >
+          <ChevronRight size={24} />
+        </button>
       </div>
 
       <ProjectModal 
