@@ -40,17 +40,17 @@ const Footer: React.FC = () => {
               <span className="sr-only">Twitter</span>
               <Twitter size={24} />
             </a>
-            <a href={`mailto:${profile.email}`} className="text-gray-400 hover:text-red-500 dark:hover:text-white transition-colors">
-              <span className="sr-only">Email</span>
+            <Link to="/contact" className="text-gray-400 hover:text-red-500 dark:hover:text-white transition-colors">
+              <span className="sr-only">Contact</span>
               <Mail size={24} />
-            </a>
+            </Link>
           </div>
         </div>
 
         <div className="border-t border-gray-100 dark:border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
           <p>&copy; {currentYear} {profile.name}. All rights reserved.</p>
           <div className="flex gap-6 mt-4 md:mt-0 items-center">
-            <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Privacy Policy</a>
+            <Link to="/contact" className="hover:text-gray-900 dark:hover:text-white transition-colors">Contact Us</Link>
             <Link to="/login" className="flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" aria-label="Admin Login">
               <Lock size={12} />
               <span>Admin</span>
