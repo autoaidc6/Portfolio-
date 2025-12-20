@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
-import { LogOut, Database, Save, Loader2, Plus, ArrowLeft, Trash2, X, AlertCircle, FileText, Mail, Link as LinkIcon } from 'lucide-react';
+import { LogOut, Database, Save, Loader2, Plus, ArrowLeft, Trash2, X, AlertCircle, FileText, Mail, Layout, User } from 'lucide-react';
 import { PROFILE, PROJECTS, BLOG_POSTS } from '../constants';
 import { Project, Profile, BlogPost } from '../types';
 
@@ -11,7 +11,7 @@ const AdminDashboard: React.FC = () => {
   const { profile, projects, blogs, refreshData } = usePortfolio();
   
   // UI State
-  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'blog' | 'contact'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'main' | 'projects' | 'blog' | 'contact'>('main');
   const [authLoading, setAuthLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
@@ -23,6 +23,15 @@ const AdminDashboard: React.FC = () => {
   // Blog Form State
   const [isBlogFormOpen, setIsBlogFormOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<Partial<BlogPost>>({});
+
+  // Main Section Form State
+  const [mainForm, setMainForm] = useState({
+    name: '',
+    role: '',
+    title: '',
+    summary: '',
+    description: ''
+  });
 
   // Contact Form State
   const [contactForm, setContactForm] = useState({
@@ -48,6 +57,15 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     if (profile) {
       setProfileJson(JSON.stringify(profile, null, 2));
+      
+      setMainForm({
+        name: profile.name || '',
+        role: profile.role || '',
+        title: profile.title || '',
+        summary: profile.about?.summary || '',
+        description: profile.about?.description?.join('\n\n') || ''
+      });
+
       setContactForm({
         email: profile.email || '',
         github: profile.social?.github || '',
@@ -101,7 +119,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // --- Profile/Contact Logic ---
+  // --- Profile/Main/Contact Logic ---
   const handleSaveProfileRaw = async () => {
     setActionLoading(true);
     try {
@@ -122,6 +140,37 @@ const AdminDashboard: React.FC = () => {
       refreshData();
     } catch (e: any) {
       showMessage('error', e.message || 'Error updating profile');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveMain = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      const newProfile = {
+        ...profile,
+        name: mainForm.name,
+        role: mainForm.role,
+        title: mainForm.title,
+        about: {
+          ...profile.about,
+          summary: mainForm.summary,
+          description: mainForm.description.split('\n\n').filter(p => p.trim() !== '')
+        }
+      };
+
+      const { error } = await supabase
+        .from('profile')
+        .upsert({ id: 1, data: newProfile });
+
+      if (error) throw error;
+      
+      showMessage('success', 'Main section updated successfully!');
+      refreshData();
+    } catch (e: any) {
+      showMessage('error', e.message || 'Error updating main section');
     } finally {
       setActionLoading(false);
     }
@@ -572,10 +621,10 @@ const AdminDashboard: React.FC = () => {
             <div className="bg-white dark:bg-dark-card shadow rounded-lg p-4 sticky top-24">
               <nav className="space-y-1">
                 <button
-                  onClick={() => setActiveTab('overview')}
-                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'overview' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                  onClick={() => setActiveTab('main')}
+                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'main' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                 >
-                  <Database size={16} /> Overview
+                  <Layout size={16} /> Main Section
                 </button>
                 <button
                   onClick={() => setActiveTab('projects')}
@@ -595,6 +644,14 @@ const AdminDashboard: React.FC = () => {
                 >
                   <Mail size={16} /> Contact Info
                 </button>
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-800 mt-4">
+                  <button
+                    onClick={() => setActiveTab('overview')}
+                    className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'overview' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                  >
+                    <Database size={16} /> Advanced (JSON)
+                  </button>
+                </div>
               </nav>
               
               <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
@@ -614,6 +671,85 @@ const AdminDashboard: React.FC = () => {
           {/* Main Content */}
           <div className="col-span-12 md:col-span-9">
             
+            {activeTab === 'main' && (
+              <div className="bg-white dark:bg-dark-card shadow rounded-lg p-6">
+                <h2 className="text-lg font-medium mb-6">Main Page Configuration</h2>
+                <form onSubmit={handleSaveMain} className="space-y-6 max-w-2xl">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <User size={16} /> Full Name
+                      </label>
+                      <input 
+                        type="text" 
+                        value={mainForm.name}
+                        onChange={e => setMainForm({...mainForm, name: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Professional Role
+                      </label>
+                      <input 
+                        type="text" 
+                        value={mainForm.role}
+                        onChange={e => setMainForm({...mainForm, role: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Brand/Title (Navbar Logo Text)
+                    </label>
+                    <input 
+                      type="text" 
+                      value={mainForm.title}
+                      onChange={e => setMainForm({...mainForm, title: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Hero Summary
+                    </label>
+                    <textarea 
+                      rows={3}
+                      value={mainForm.summary}
+                      onChange={e => setMainForm({...mainForm, summary: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      About Me Description (Separate paragraphs with double enter)
+                    </label>
+                    <textarea 
+                      rows={8}
+                      value={mainForm.description}
+                      onChange={e => setMainForm({...mainForm, description: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none font-sans"
+                    />
+                  </div>
+
+                  <div className="pt-4">
+                    <button 
+                      type="submit" 
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                      {actionLoading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                      Update Main Page
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 <div className="bg-white dark:bg-dark-card shadow rounded-lg p-6">
@@ -632,7 +768,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 rounded-lg p-4 mb-4">
                     <p className="text-sm text-blue-800 dark:text-blue-300 flex gap-2">
                       <AlertCircle size={18} className="flex-shrink-0" />
-                      <span>Advanced: Edit the raw JSON below for full control. For basic updates, use the other tabs.</span>
+                      <span>Advanced: Edit the raw JSON below for full control over experience, education, etc.</span>
                     </p>
                   </div>
 
