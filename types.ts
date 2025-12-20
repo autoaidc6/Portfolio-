@@ -53,6 +53,7 @@ export interface Profile {
   role: string;
   title: string;
   email: string;
+  location?: string;
   social: {
     github: string;
     linkedin: string;
@@ -64,4 +65,14 @@ export interface Profile {
   };
   experience: Experience[];
   education: Education[];
+}
+
+export interface ContactMessage {
+  id: number;
+  created_at: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  is_read: boolean;
 }
