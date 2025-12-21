@@ -1,26 +1,20 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
-// Added MapPin to the imports from lucide-react
-import { LogOut, Database, Save, Loader2, Plus, ArrowLeft, Trash2, X, AlertCircle, FileText, Mail, Layout, User, Inbox, Eye, Check, MapPin } from 'lucide-react';
+import { LogOut, Database, Save, Loader2, Plus, ArrowLeft, Trash2, X, AlertCircle, FileText, Mail, Layout, User } from 'lucide-react';
 import { PROFILE, PROJECTS, BLOG_POSTS } from '../constants';
-import { Project, Profile, BlogPost, ContactMessage } from '../types';
+import { Project, Profile, BlogPost } from '../types';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { profile, projects, blogs, refreshData } = usePortfolio();
   
   // UI State
-  const [activeTab, setActiveTab] = useState<'overview' | 'main' | 'projects' | 'blog' | 'contact' | 'messages'>('main');
+  const [activeTab, setActiveTab] = useState<'overview' | 'main' | 'projects' | 'blog' | 'contact'>('main');
   const [authLoading, setAuthLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
-
-  // Messages State
-  const [inboxMessages, setInboxMessages] = useState<ContactMessage[]>([]);
-  const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
 
   // Project Form State
   const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
@@ -36,8 +30,7 @@ const AdminDashboard: React.FC = () => {
     role: '',
     title: '',
     summary: '',
-    description: '',
-    location: ''
+    description: ''
   });
 
   // Contact Form State
@@ -57,7 +50,6 @@ const AdminDashboard: React.FC = () => {
         navigate('/login');
       } else {
         setAuthLoading(false);
-        fetchInbox();
       }
     });
   }, [navigate]);
@@ -71,8 +63,7 @@ const AdminDashboard: React.FC = () => {
         role: profile.role || '',
         title: profile.title || '',
         summary: profile.about?.summary || '',
-        description: profile.about?.description?.join('\n\n') || '',
-        location: profile.location || ''
+        description: profile.about?.description?.join('\n\n') || ''
       });
 
       setContactForm({
@@ -84,17 +75,6 @@ const AdminDashboard: React.FC = () => {
     }
   }, [profile]);
 
-  const fetchInbox = async () => {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (data) {
-      setInboxMessages(data);
-    }
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
@@ -103,32 +83,6 @@ const AdminDashboard: React.FC = () => {
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3000);
-  };
-
-  // --- Inbox Logic ---
-  const handleMarkAsRead = async (id: number) => {
-    const { error } = await supabase
-      .from('messages')
-      .update({ is_read: true })
-      .eq('id', id);
-    
-    if (!error) {
-      fetchInbox();
-      if (selectedMessage?.id === id) {
-        setSelectedMessage({ ...selectedMessage, is_read: true });
-      }
-    }
-  };
-
-  const handleDeleteMessage = async (id: number) => {
-    if (!window.confirm('Delete this message permanently?')) return;
-    
-    const { error } = await supabase.from('messages').delete().eq('id', id);
-    if (!error) {
-      showMessage('success', 'Message deleted');
-      fetchInbox();
-      if (selectedMessage?.id === id) setSelectedMessage(null);
-    }
   };
 
   // --- Database Seeding ---
@@ -200,7 +154,6 @@ const AdminDashboard: React.FC = () => {
         name: mainForm.name,
         role: mainForm.role,
         title: mainForm.title,
-        location: mainForm.location,
         about: {
           ...profile.about,
           summary: mainForm.summary,
@@ -253,7 +206,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Project Logic
+  // --- Project Logic ---
   const openNewProjectForm = () => {
     setEditingProject({});
     setIsProjectFormOpen(true);
@@ -266,10 +219,12 @@ const AdminDashboard: React.FC = () => {
 
   const handleDeleteProject = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this project?')) return;
+    
     setActionLoading(true);
     try {
       const { error } = await supabase.from('projects').delete().eq('id', id);
       if (error) throw error;
+      
       showMessage('success', 'Project deleted successfully');
       refreshData();
     } catch (e: any) {
@@ -282,11 +237,21 @@ const AdminDashboard: React.FC = () => {
   const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionLoading(true);
+
     try {
-      const projectData = { ...editingProject, tags: Array.isArray(editingProject.tags) ? editingProject.tags : [], features: Array.isArray(editingProject.features) ? editingProject.features : [], gallery: Array.isArray(editingProject.gallery) ? editingProject.gallery : [], };
+      const projectData = {
+        ...editingProject,
+        tags: Array.isArray(editingProject.tags) ? editingProject.tags : [],
+        features: Array.isArray(editingProject.features) ? editingProject.features : [],
+        gallery: Array.isArray(editingProject.gallery) ? editingProject.gallery : [],
+      };
+
       if (!projectData.id) delete projectData.id;
+
       const { error } = await supabase.from('projects').upsert(projectData as any);
+
       if (error) throw error;
+
       showMessage('success', `Project ${editingProject.id ? 'updated' : 'created'} successfully!`);
       setIsProjectFormOpen(false);
       refreshData();
@@ -297,7 +262,17 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Blog Logic
+  const updateProjectField = (field: keyof Project, value: any) => {
+    setEditingProject(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updateProjectArrayField = (field: 'tags' | 'features', value: string) => {
+    const separator = field === 'features' ? '\n' : ',';
+    const array = value.split(separator).map(item => item.trim()).filter(item => item !== '');
+    updateProjectField(field, array);
+  };
+
+  // --- Blog Logic ---
   const openNewBlogForm = () => {
     setEditingBlog({ date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) });
     setIsBlogFormOpen(true);
@@ -310,10 +285,12 @@ const AdminDashboard: React.FC = () => {
 
   const handleDeleteBlog = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this post?')) return;
+    
     setActionLoading(true);
     try {
       const { error } = await supabase.from('blogs').delete().eq('id', id);
       if (error) throw error;
+      
       showMessage('success', 'Post deleted successfully');
       refreshData();
     } catch (e: any) {
@@ -326,11 +303,15 @@ const AdminDashboard: React.FC = () => {
   const handleSaveBlog = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionLoading(true);
+
     try {
       const blogData = { ...editingBlog };
       if (!blogData.id) delete blogData.id;
+
       const { error } = await supabase.from('blogs').upsert(blogData as any);
+
       if (error) throw error;
+
       showMessage('success', `Post ${editingBlog.id ? 'updated' : 'created'} successfully!`);
       setIsBlogFormOpen(false);
       refreshData();
@@ -341,11 +322,271 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-bg"><Loader2 className="animate-spin text-primary-600" size={32} /></div>;
+  const updateBlogField = (field: keyof BlogPost, value: any) => {
+    setEditingBlog(prev => ({ ...prev, [field]: value }));
+  };
 
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-bg">
+        <Loader2 className="animate-spin text-primary-600" size={32} />
+      </div>
+    );
+  }
+
+  // --- Forms Rendering ---
+
+  // Project Form
+  if (isProjectFormOpen) {
+    return (
+      <div className="min-h-screen bg-gray-100 dark:bg-dark-bg text-gray-900 dark:text-white p-6">
+        <div className="max-w-4xl mx-auto bg-white dark:bg-dark-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+            <h2 className="text-xl font-bold">{editingProject.id ? 'Edit Project' : 'New Project'}</h2>
+            <button 
+              onClick={() => setIsProjectFormOpen(false)}
+              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          
+          <form onSubmit={handleSaveProject} className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editingProject.title || ''}
+                  onChange={e => updateProjectField('title', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Image URL</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editingProject.image || ''}
+                  onChange={e => updateProjectField('image', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Short Description</label>
+              <textarea 
+                required
+                rows={2}
+                value={editingProject.description || ''}
+                onChange={e => updateProjectField('description', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Long Description (Optional)</label>
+              <textarea 
+                rows={4}
+                value={editingProject.longDescription || ''}
+                onChange={e => updateProjectField('longDescription', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Demo URL</label>
+                <input 
+                  type="text" 
+                  value={editingProject.demoUrl || ''}
+                  onChange={e => updateProjectField('demoUrl', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">GitHub URL</label>
+                <input 
+                  type="text" 
+                  value={editingProject.githubUrl || ''}
+                  onChange={e => updateProjectField('githubUrl', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Case Study URL</label>
+                <input 
+                  type="text" 
+                  value={editingProject.caseStudyUrl || ''}
+                  onChange={e => updateProjectField('caseStudyUrl', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tags (comma separated)</label>
+                <input 
+                  type="text" 
+                  value={editingProject.tags?.join(', ') || ''}
+                  onChange={e => updateProjectArrayField('tags', e.target.value)}
+                  placeholder="React, TypeScript, Tailwind"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Features (one per line)</label>
+                <textarea 
+                  rows={4}
+                  value={editingProject.features?.join('\n') || ''}
+                  onChange={e => updateProjectArrayField('features', e.target.value)}
+                  placeholder="Real-time tracking&#10;Dark mode support"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700">
+              <button 
+                type="button" 
+                onClick={() => setIsProjectFormOpen(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={actionLoading}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2 transition-colors disabled:opacity-50"
+              >
+                {actionLoading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                Save Project
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Blog Form
+  if (isBlogFormOpen) {
+    return (
+      <div className="min-h-screen bg-gray-100 dark:bg-dark-bg text-gray-900 dark:text-white p-6">
+        <div className="max-w-2xl mx-auto bg-white dark:bg-dark-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+            <h2 className="text-xl font-bold">{editingBlog.id ? 'Edit Post' : 'New Post'}</h2>
+            <button 
+              onClick={() => setIsBlogFormOpen(false)}
+              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          
+          <form onSubmit={handleSaveBlog} className="p-6 space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+              <input 
+                type="text" 
+                required
+                value={editingBlog.title || ''}
+                onChange={e => updateBlogField('title', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Excerpt</label>
+              <textarea 
+                required
+                rows={3}
+                value={editingBlog.excerpt || ''}
+                onChange={e => updateBlogField('excerpt', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editingBlog.date || ''}
+                  onChange={e => updateBlogField('date', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Read Time</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editingBlog.readTime || ''}
+                  onChange={e => updateBlogField('readTime', e.target.value)}
+                  placeholder="5 min read"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Slug</label>
+              <input 
+                type="text" 
+                required
+                value={editingBlog.slug || ''}
+                onChange={e => updateBlogField('slug', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">External Link (Optional)</label>
+              <input 
+                type="text" 
+                value={editingBlog.link || ''}
+                onChange={e => updateBlogField('link', e.target.value)}
+                placeholder="https://medium.com/..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+              <p className="text-xs text-gray-500">If provided, clicking the post will navigate to this URL.</p>
+            </div>
+
+            <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700">
+              <button 
+                type="button" 
+                onClick={() => setIsBlogFormOpen(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={actionLoading}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2 transition-colors disabled:opacity-50"
+              >
+                {actionLoading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                Save Post
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Main Dashboard Render ---
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-dark-bg text-gray-900 dark:text-white pb-20">
       
+      {/* Toast Message */}
       {message && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
            {message.type === 'error' && <AlertCircle size={18} />}
@@ -356,9 +597,18 @@ const AdminDashboard: React.FC = () => {
       <nav className="bg-white dark:bg-dark-card shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <h1 className="text-xl font-bold flex items-center gap-2"><Layout size={20} className="text-primary-600"/> Admin Dashboard</h1>
             <div className="flex items-center gap-4">
-              <button onClick={handleLogout} className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"><LogOut size={20} /></button>
+              <button onClick={() => navigate('/')} className="md:hidden text-gray-500"><ArrowLeft size={20} /></button>
+              <h1 className="text-xl font-bold">Admin Dashboard</h1>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
+                title="Logout"
+              >
+                <LogOut size={20} />
+              </button>
             </div>
           </div>
         </div>
@@ -368,28 +618,52 @@ const AdminDashboard: React.FC = () => {
         <div className="grid grid-cols-12 gap-6">
           {/* Sidebar */}
           <div className="col-span-12 md:col-span-3">
-            <div className="bg-white dark:bg-dark-card shadow rounded-2xl p-4 sticky top-24">
+            <div className="bg-white dark:bg-dark-card shadow rounded-lg p-4 sticky top-24">
               <nav className="space-y-1">
-                <button onClick={() => setActiveTab('main')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'main' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}><Layout size={18} /> Main Section</button>
-                <button onClick={() => setActiveTab('messages')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center gap-3 relative ${activeTab === 'messages' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                  <Inbox size={18} /> Messages
-                  {inboxMessages.filter(m => !m.is_read).length > 0 && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-                      {inboxMessages.filter(m => !m.is_read).length}
-                    </span>
-                  )}
+                <button
+                  onClick={() => setActiveTab('main')}
+                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'main' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                >
+                  <Layout size={16} /> Main Section
                 </button>
-                <button onClick={() => setActiveTab('projects')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'projects' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}><FileText size={18} /> Projects</button>
-                <button onClick={() => setActiveTab('blog')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'blog' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}><FileText size={18} /> Blog Posts</button>
-                <button onClick={() => setActiveTab('contact')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'contact' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}><Mail size={18} /> Contact Info</button>
+                <button
+                  onClick={() => setActiveTab('projects')}
+                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'projects' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                >
+                  <FileText size={16} /> Projects
+                </button>
+                <button
+                  onClick={() => setActiveTab('blog')}
+                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'blog' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                >
+                  <FileText size={16} /> Blog Posts
+                </button>
+                <button
+                  onClick={() => setActiveTab('contact')}
+                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'contact' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                >
+                  <Mail size={16} /> Contact Info
+                </button>
                 <div className="pt-4 border-t border-gray-100 dark:border-gray-800 mt-4">
-                  <button onClick={() => setActiveTab('overview')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'overview' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}><Database size={18} /> Advanced (JSON)</button>
+                  <button
+                    onClick={() => setActiveTab('overview')}
+                    className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'overview' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                  >
+                    <Database size={16} /> Advanced (JSON)
+                  </button>
                 </div>
               </nav>
+              
               <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <button onClick={seedDatabase} disabled={actionLoading} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
-                  {actionLoading ? <Loader2 className="animate-spin" size={16} /> : <Database size={16} />} Reset DB
-                </button>
+                 <button
+                    onClick={seedDatabase}
+                    disabled={actionLoading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    {actionLoading ? <Loader2 className="animate-spin" size={16} /> : <Database size={16} />}
+                    Reset / Seed DB
+                  </button>
+                  <p className="text-xs text-center mt-2 text-gray-500">Resets all data to constants</p>
               </div>
             </div>
           </div>
@@ -397,226 +671,291 @@ const AdminDashboard: React.FC = () => {
           {/* Main Content */}
           <div className="col-span-12 md:col-span-9">
             
-            {activeTab === 'messages' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Message List */}
-                <div className="lg:col-span-5 bg-white dark:bg-dark-card shadow rounded-2xl overflow-hidden flex flex-col h-[700px]">
-                  <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30">
-                    <h2 className="font-bold flex items-center gap-2"><Inbox size={18} className="text-primary-600"/> Inbox</h2>
-                    <span className="text-xs text-gray-500">{inboxMessages.length} Messages</span>
-                  </div>
-                  <div className="flex-1 overflow-y-auto no-scrollbar">
-                    {inboxMessages.length === 0 ? (
-                      <div className="p-12 text-center text-gray-400 flex flex-col items-center">
-                        <Inbox size={48} className="mb-4 opacity-10" />
-                        <p>Inbox is empty</p>
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {inboxMessages.map(m => (
-                          <div 
-                            key={m.id} 
-                            onClick={() => { setSelectedMessage(m); if (!m.is_read) handleMarkAsRead(m.id); }}
-                            className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${selectedMessage?.id === m.id ? 'bg-primary-50 dark:bg-primary-900/20' : ''} ${!m.is_read ? 'border-l-4 border-primary-600' : ''}`}
-                          >
-                            <div className="flex justify-between items-start mb-1">
-                              <h3 className={`text-sm ${!m.is_read ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>{m.name}</h3>
-                              <span className="text-[10px] text-gray-400 whitespace-nowrap">{new Date(m.created_at).toLocaleDateString()}</span>
-                            </div>
-                            <p className="text-xs text-gray-500 truncate">{m.subject}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Message Detail */}
-                <div className="lg:col-span-7">
-                  {selectedMessage ? (
-                    <div className="bg-white dark:bg-dark-card shadow rounded-2xl p-6 h-full flex flex-col border border-gray-100 dark:border-gray-800">
-                      <div className="flex justify-between items-start mb-6 border-b border-gray-100 dark:border-gray-800 pb-6">
-                        <div>
-                          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{selectedMessage.subject}</h2>
-                          <div className="flex flex-col text-sm text-gray-500">
-                            <span className="flex items-center gap-1 font-medium text-gray-700 dark:text-gray-300"><User size={14}/> {selectedMessage.name} &lt;{selectedMessage.email}&gt;</span>
-                            <span className="mt-1">Received: {new Date(selectedMessage.created_at).toLocaleString()}</span>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                           <button 
-                             onClick={() => handleDeleteMessage(selectedMessage.id)}
-                             className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
-                             title="Delete message"
-                           >
-                             <Trash2 size={20} />
-                           </button>
-                        </div>
-                      </div>
-                      <div className="flex-1 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed overflow-y-auto max-h-[400px]">
-                        {selectedMessage.message}
-                      </div>
-                      <div className="mt-8 flex items-center gap-4">
-                        <a 
-                          href={`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.subject}`}
-                          className="px-6 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-colors shadow-lg shadow-primary-500/20 flex items-center gap-2"
-                        >
-                          <Mail size={18} /> Reply
-                        </a>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-white dark:bg-dark-card shadow rounded-2xl h-full flex flex-col items-center justify-center text-center p-12 text-gray-400 border border-gray-100 dark:border-gray-800">
-                      <Eye size={64} className="mb-4 opacity-10" />
-                      <p className="text-lg">Select a message to view its content</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
             {activeTab === 'main' && (
-              <div className="bg-white dark:bg-dark-card shadow rounded-2xl p-8 border border-gray-100 dark:border-gray-800">
-                <h2 className="text-xl font-bold mb-8 flex items-center gap-2 text-gray-900 dark:text-white"><Layout size={20} className="text-primary-600" /> Main Configuration</h2>
-                <form onSubmit={handleSaveMain} className="space-y-6 max-w-3xl">
+              <div className="bg-white dark:bg-dark-card shadow rounded-lg p-6">
+                <h2 className="text-lg font-medium mb-6">Main Page Configuration</h2>
+                <form onSubmit={handleSaveMain} className="space-y-6 max-w-2xl">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2"><User size={16}/> Name</label>
-                      <input type="text" value={mainForm.name} onChange={e => setMainForm({...mainForm, name: e.target.value})} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white" />
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <User size={16} /> Full Name
+                      </label>
+                      <input 
+                        type="text" 
+                        value={mainForm.name}
+                        onChange={e => setMainForm({...mainForm, name: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                      />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Role</label>
-                      <input type="text" value={mainForm.role} onChange={e => setMainForm({...mainForm, role: e.target.value})} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white" />
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Professional Role
+                      </label>
+                      <input 
+                        type="text" 
+                        value={mainForm.role}
+                        onChange={e => setMainForm({...mainForm, role: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                      />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2"><MapPin size={16}/> Location</label>
-                    <input type="text" value={mainForm.location} onChange={e => setMainForm({...mainForm, location: e.target.value})} placeholder="e.g. San Francisco, CA" className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Hero Summary</label>
-                    <textarea rows={3} value={mainForm.summary} onChange={e => setMainForm({...mainForm, summary: e.target.value})} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white resize-none" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">About Description (Split by double newline)</label>
-                    <textarea rows={8} value={mainForm.description} onChange={e => setMainForm({...mainForm, description: e.target.value})} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white resize-none" />
-                  </div>
-                  <button type="submit" disabled={actionLoading} className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary-500/20 flex items-center gap-2 disabled:opacity-70">{actionLoading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} Update Settings</button>
-                </form>
-              </div>
-            )}
 
-            {/* Other tabs follow the same styling (Projects, Blog, Contact, Overview) */}
-            {activeTab === 'projects' && (
-              <div className="bg-white dark:bg-dark-card shadow rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
-                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30">
-                  <h3 className="font-bold flex items-center gap-2 text-gray-900 dark:text-white"><FileText size={18} className="text-primary-600"/> Projects</h3>
-                  <button onClick={openNewProjectForm} className="px-4 py-2 bg-primary-600 text-white text-xs font-bold rounded-xl hover:bg-primary-700 transition-colors flex items-center gap-2"><Plus size={14} /> Add New</button>
-                </div>
-                <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {projects.map((project) => (
-                    <li key={project.id} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <img src={project.image} alt="" className="h-12 w-12 rounded-xl object-cover border border-gray-100 dark:border-gray-700" />
-                        <div>
-                          <p className="text-sm font-bold text-gray-900 dark:text-white">{project.title}</p>
-                          <p className="text-xs text-gray-500 line-clamp-1">{project.description}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => openEditProjectForm(project)} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"><Eye size={18} /></button>
-                        <button onClick={() => handleDeleteProject(project.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"><Trash2 size={18} /></button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {activeTab === 'contact' && (
-              <div className="bg-white dark:bg-dark-card shadow rounded-2xl p-8 border border-gray-100 dark:border-gray-800">
-                <h2 className="text-xl font-bold mb-8 flex items-center gap-2 text-gray-900 dark:text-white"><Mail size={20} className="text-primary-600" /> Contact Configuration</h2>
-                <form onSubmit={handleSaveContact} className="space-y-6 max-w-2xl">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
-                    <input type="email" value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white" />
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Brand/Title (Navbar Logo Text)
+                    </label>
+                    <input 
+                      type="text" 
+                      value={mainForm.title}
+                      onChange={e => setMainForm({...mainForm, title: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
                   </div>
-                  <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-gray-800">
-                    <h3 className="font-bold text-gray-900 dark:text-white">Social Media</h3>
-                    <input type="text" value={contactForm.github} onChange={e => setContactForm({...contactForm, github: e.target.value})} placeholder="GitHub URL" className="w-full px-4 py-3 mb-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white" />
-                    <input type="text" value={contactForm.linkedin} onChange={e => setContactForm({...contactForm, linkedin: e.target.value})} placeholder="LinkedIn URL" className="w-full px-4 py-3 mb-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white" />
-                    <input type="text" value={contactForm.twitter} onChange={e => setContactForm({...contactForm, twitter: e.target.value})} placeholder="Twitter URL" className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white" />
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Hero Summary
+                    </label>
+                    <textarea 
+                      rows={3}
+                      value={mainForm.summary}
+                      onChange={e => setMainForm({...mainForm, summary: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
                   </div>
-                  <button type="submit" disabled={actionLoading} className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary-500/20 flex items-center gap-2">{actionLoading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} Update Contact</button>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      About Me Description (Separate paragraphs with double enter)
+                    </label>
+                    <textarea 
+                      rows={8}
+                      value={mainForm.description}
+                      onChange={e => setMainForm({...mainForm, description: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none font-sans"
+                    />
+                  </div>
+
+                  <div className="pt-4">
+                    <button 
+                      type="submit" 
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                      {actionLoading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                      Update Main Page
+                    </button>
+                  </div>
                 </form>
               </div>
             )}
 
             {activeTab === 'overview' && (
-              <div className="bg-white dark:bg-dark-card shadow rounded-2xl p-8 border border-gray-100 dark:border-gray-800">
-                <div className="flex justify-between items-center mb-6">
-                   <h2 className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white"><Database size={20} className="text-primary-600" /> Advanced JSON Edit</h2>
-                   <button onClick={handleSaveProfileRaw} disabled={actionLoading} className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2">{actionLoading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Save JSON</button>
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-dark-card shadow rounded-lg p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-medium">Raw Profile Data</h2>
+                    <button 
+                      onClick={handleSaveProfileRaw}
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                      {actionLoading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                      Save JSON
+                    </button>
+                  </div>
+                  
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-blue-800 dark:text-blue-300 flex gap-2">
+                      <AlertCircle size={18} className="flex-shrink-0" />
+                      <span>Advanced: Edit the raw JSON below for full control over experience, education, etc.</span>
+                    </p>
+                  </div>
+
+                  <textarea 
+                    value={profileJson}
+                    onChange={(e) => setProfileJson(e.target.value)}
+                    className="w-full h-[600px] font-mono text-sm p-4 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
+                    spellCheck={false}
+                  />
                 </div>
-                <textarea 
-                   value={profileJson} 
-                   onChange={e => setProfileJson(e.target.value)} 
-                   className="w-full h-[600px] font-mono text-sm p-6 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" 
-                   spellCheck={false}
-                />
+              </div>
+            )}
+
+            {activeTab === 'projects' && (
+              <div className="bg-white dark:bg-dark-card shadow rounded-lg overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                  <h3 className="text-lg font-medium">Projects ({projects.length})</h3>
+                  <button 
+                    onClick={openNewProjectForm}
+                    className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors flex items-center gap-2"
+                  >
+                    <Plus size={16} /> Add New
+                  </button>
+                </div>
+                
+                {projects.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                    No projects found.
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {projects.map((project) => (
+                      <li key={project.id} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <img 
+                            src={project.image} 
+                            alt="" 
+                            className="h-16 w-16 rounded-md object-cover border border-gray-200 dark:border-gray-700" 
+                            onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64?text=Img'; }}
+                          />
+                          <div>
+                            <p className="text-sm font-bold text-gray-900 dark:text-white">{project.title}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 max-w-xs">{project.description}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => openEditProjectForm(project)}
+                            className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteProject(project.id)}
+                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'blog' && (
+              <div className="bg-white dark:bg-dark-card shadow rounded-lg overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                  <h3 className="text-lg font-medium">Blog Posts ({blogs.length})</h3>
+                  <button 
+                    onClick={openNewBlogForm}
+                    className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors flex items-center gap-2"
+                  >
+                    <Plus size={16} /> Add New
+                  </button>
+                </div>
+                
+                {blogs.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                    No blog posts found.
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {blogs.map((blog) => (
+                      <li key={blog.id} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{blog.title}</p>
+                          <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <span>{blog.date}</span>
+                            <span>{blog.readTime}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => openEditBlogForm(blog)}
+                            className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteBlog(blog.id)}
+                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'contact' && (
+              <div className="bg-white dark:bg-dark-card shadow rounded-lg p-6">
+                <h2 className="text-lg font-medium mb-6">Contact Information</h2>
+                <form onSubmit={handleSaveContact} className="space-y-6 max-w-2xl">
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <Mail size={16} /> Email Address
+                    </label>
+                    <input 
+                      type="email" 
+                      value={contactForm.email}
+                      onChange={e => setContactForm({...contactForm, email: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white">Social Links</h3>
+                    
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                         GitHub URL
+                      </label>
+                      <input 
+                        type="text" 
+                        value={contactForm.github}
+                        onChange={e => setContactForm({...contactForm, github: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                         LinkedIn URL
+                      </label>
+                      <input 
+                        type="text" 
+                        value={contactForm.linkedin}
+                        onChange={e => setContactForm({...contactForm, linkedin: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                         Twitter URL
+                      </label>
+                      <input 
+                        type="text" 
+                        value={contactForm.twitter}
+                        onChange={e => setContactForm({...contactForm, twitter: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <button 
+                      type="submit" 
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                      {actionLoading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                      Update Contact Info
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
 
           </div>
         </div>
       </div>
-      
-      {/* Project Form Modal (Minimal placeholder, implementation details omitted for brevity as they are unchanged) */}
-      {isProjectFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-           <div className="bg-white dark:bg-dark-card w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl p-8 shadow-2xl">
-              <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold">{editingProject.id ? 'Edit Project' : 'New Project'}</h2>
-                <button onClick={() => setIsProjectFormOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"><X size={24} /></button>
-              </div>
-              <form onSubmit={handleSaveProject} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Title</label>
-                    <input type="text" required value={editingProject.title || ''} onChange={e => setEditingProject({...editingProject, title: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-dark-bg dark:text-white" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Image URL</label>
-                    <input type="text" required value={editingProject.image || ''} onChange={e => setEditingProject({...editingProject, image: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-dark-bg dark:text-white" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Short Description</label>
-                  <input type="text" required value={editingProject.description || ''} onChange={e => setEditingProject({...editingProject, description: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-dark-bg dark:text-white" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Long Description</label>
-                  <textarea rows={4} value={editingProject.longDescription || ''} onChange={e => setEditingProject({...editingProject, longDescription: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-dark-bg dark:text-white resize-none" />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Demo URL</label>
-                    <input type="text" value={editingProject.demoUrl || ''} onChange={e => setEditingProject({...editingProject, demoUrl: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-dark-bg dark:text-white" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">GitHub URL</label>
-                    <input type="text" value={editingProject.githubUrl || ''} onChange={e => setEditingProject({...editingProject, githubUrl: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-dark-bg dark:text-white" />
-                  </div>
-                </div>
-                <div className="pt-6 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-4">
-                  <button type="button" onClick={() => setIsProjectFormOpen(false)} className="px-6 py-2 rounded-xl font-bold hover:bg-gray-100 dark:hover:bg-gray-800">Cancel</button>
-                  <button type="submit" disabled={actionLoading} className="px-8 py-2 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 flex items-center gap-2">{actionLoading ? <Loader2 className="animate-spin" size={16}/> : <Save size={16}/>} Save Project</button>
-                </div>
-              </form>
-           </div>
-        </div>
-      )}
-
     </div>
   );
 };
