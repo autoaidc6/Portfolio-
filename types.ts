@@ -26,7 +26,7 @@ export interface BlogPost {
 
 export interface Skill {
   name: string;
-  icon: string; // Changed to string for DB storage
+  icon: React.ReactNode;
   category: 'frontend' | 'backend' | 'tools';
 }
 
@@ -53,7 +53,6 @@ export interface Profile {
   role: string;
   title: string;
   email: string;
-  location?: string;
   social: {
     github: string;
     linkedin: string;
@@ -65,16 +64,4 @@ export interface Profile {
   };
   experience: Experience[];
   education: Education[];
-  skills?: Skill[]; // Skills moved into profile for easier editing
-  currentlyLearning?: string[];
-}
-
-export interface ContactMessage {
-  id: number;
-  created_at: string;
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  is_read: boolean;
 }

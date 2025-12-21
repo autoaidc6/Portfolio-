@@ -1,11 +1,12 @@
-import { Project, BlogPost, Profile } from './types';
+import React from 'react';
+import { Project, BlogPost, Skill, Profile } from './types';
+import { Code2, Globe, Database, Cpu, Layout, Smartphone, Terminal, GitBranch } from 'lucide-react';
 
 export const PROFILE: Profile = {
   name: "Alex Dev",
   role: "Senior Frontend Engineer",
   title: "AlexDev.",
   email: "hello@alexdev.com",
-  location: "San Francisco, CA",
   social: {
     github: "https://github.com",
     linkedin: "https://linkedin.com",
@@ -37,19 +38,7 @@ export const PROFILE: Profile = {
       degree: "BS Computer Science",
       year: "2016"
     }
-  ],
-  skills: [
-    { name: "React / Next.js", icon: "Code2", category: 'frontend' },
-    { name: "TypeScript", icon: "Terminal", category: 'frontend' },
-    { name: "Tailwind CSS", icon: "Layout", category: 'frontend' },
-    { name: "Node.js", icon: "Database", category: 'backend' },
-    { name: "GraphQL", icon: "Globe", category: 'backend' },
-    { name: "PostgreSQL", icon: "Database", category: 'backend' },
-    { name: "Docker", icon: "Cpu", category: 'tools' },
-    { name: "Git / CI/CD", icon: "GitBranch", category: 'tools' },
-    { name: "Mobile First", icon: "Smartphone", category: 'frontend' },
-  ],
-  currentlyLearning: ["Rust", "WebAssembly", "Cloud Native Architecture"]
+  ]
 };
 
 export const PROJECTS: Project[] = [
@@ -166,4 +155,16 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: "web-performance-2024",
     link: "https://web.dev/blog"
   }
+];
+
+export const SKILLS: Skill[] = [
+  { name: "React / Next.js", icon: <Code2 size={20} />, category: 'frontend' },
+  { name: "TypeScript", icon: <Terminal size={20} />, category: 'frontend' },
+  { name: "Tailwind CSS", icon: <Layout size={20} />, category: 'frontend' },
+  { name: "Node.js", icon: <Database size={20} />, category: 'backend' },
+  { name: "GraphQL", icon: <Globe size={20} />, category: 'backend' },
+  { name: "PostgreSQL", icon: <Database size={20} />, category: 'backend' },
+  { name: "Docker", icon: <Cpu size={20} />, category: 'tools' },
+  { name: "Git / CI/CD", icon: <GitBranch size={20} />, category: 'tools' },
+  { name: "Mobile First", icon: <Smartphone size={20} />, category: 'frontend' },
 ];

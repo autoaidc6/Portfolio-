@@ -1,22 +1,9 @@
 import React from 'react';
-import { Briefcase, GraduationCap, Code2, Globe, Database, Cpu, Layout, Smartphone, Terminal, GitBranch } from 'lucide-react';
+import { Briefcase, GraduationCap } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 
-const IconMap: Record<string, React.ReactNode> = {
-  Code2: <Code2 size={20} />,
-  Globe: <Globe size={20} />,
-  Database: <Database size={20} />,
-  Cpu: <Cpu size={20} />,
-  Layout: <Layout size={20} />,
-  Smartphone: <Smartphone size={20} />,
-  Terminal: <Terminal size={20} />,
-  GitBranch: <GitBranch size={20} />,
-};
-
 const About: React.FC = () => {
-  const { profile } = usePortfolio();
-  const skills = profile.skills || [];
-  const currentlyLearning = profile.currentlyLearning || [];
+  const { profile, skills } = usePortfolio();
 
   return (
     <section id="about" className="py-24 bg-white dark:bg-dark-bg transition-colors duration-300">
@@ -69,28 +56,23 @@ const About: React.FC = () => {
              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">Technical Skills</h3>
              
              <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                {skills.map((skill, idx) => (
-                  <div key={`${skill.name}-${idx}`} className="flex flex-col items-center justify-center p-4 bg-white dark:bg-dark-bg rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-primary-500 dark:hover:border-primary-500 transition-colors group">
+                {skills.map((skill) => (
+                  <div key={skill.name} className="flex flex-col items-center justify-center p-4 bg-white dark:bg-dark-bg rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-primary-500 dark:hover:border-primary-500 transition-colors group">
                     <div className="text-gray-400 group-hover:text-primary-500 mb-3 transition-colors">
-                      {IconMap[skill.icon] || <Code2 size={20} />}
+                      {skill.icon}
                     </div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 text-center">{skill.name}</span>
                   </div>
                 ))}
              </div>
 
-             {currentlyLearning.length > 0 && (
-               <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
-                 <h4 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Currently Learning</h4>
-                 <div className="flex flex-wrap gap-3">
-                   {currentlyLearning.map((item, idx) => (
-                     <span key={idx} className="px-3 py-1 text-xs rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 font-medium">
-                       {item}
-                     </span>
-                   ))}
-                 </div>
+             <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+               <h4 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Currently Learning</h4>
+               <div className="flex gap-3">
+                 <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Rust</span>
+                 <span className="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">WebAssembly</span>
                </div>
-             )}
+             </div>
           </div>
 
         </div>
