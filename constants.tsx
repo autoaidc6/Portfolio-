@@ -38,7 +38,9 @@ export const PROFILE: Profile = {
       degree: "BS Computer Science",
       year: "2016"
     }
-  ]
+  ],
+  technicalSkills: "React, TypeScript, Tailwind CSS, Node.js, Next.js, PostgreSQL",
+  currentlyLearning: "Rust, WebAssembly, System Design"
 };
 
 export const PROJECTS: Project[] = [
