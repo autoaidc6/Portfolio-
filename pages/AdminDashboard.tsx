@@ -30,7 +30,9 @@ const AdminDashboard: React.FC = () => {
     role: '',
     title: '',
     summary: '',
-    description: ''
+    description: '',
+    technicalSkills: '',
+    currentlyLearning: ''
   });
 
   // Contact Form State
@@ -63,7 +65,9 @@ const AdminDashboard: React.FC = () => {
         role: profile.role || '',
         title: profile.title || '',
         summary: profile.about?.summary || '',
-        description: profile.about?.description?.join('\n\n') || ''
+        description: profile.about?.description?.join('\n\n') || '',
+        technicalSkills: profile.technicalSkills || '',
+        currentlyLearning: profile.currentlyLearning || ''
       });
 
       setContactForm({
@@ -149,11 +153,13 @@ const AdminDashboard: React.FC = () => {
     e.preventDefault();
     setActionLoading(true);
     try {
-      const newProfile = {
+      const newProfile: Profile = {
         ...profile,
         name: mainForm.name,
         role: mainForm.role,
         title: mainForm.title,
+        technicalSkills: mainForm.technicalSkills,
+        currentlyLearning: mainForm.currentlyLearning,
         about: {
           ...profile.about,
           summary: mainForm.summary,
@@ -733,6 +739,30 @@ const AdminDashboard: React.FC = () => {
                       value={mainForm.description}
                       onChange={e => setMainForm({...mainForm, description: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none font-sans"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Technical Skills (comma separated)
+                    </label>
+                    <input 
+                      type="text" 
+                      value={mainForm.technicalSkills}
+                      onChange={e => setMainForm({...mainForm, technicalSkills: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Currently Learning
+                    </label>
+                    <input 
+                      type="text" 
+                      value={mainForm.currentlyLearning}
+                      onChange={e => setMainForm({...mainForm, currentlyLearning: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-bg focus:ring-2 focus:ring-primary-500 outline-none"
                     />
                   </div>
 

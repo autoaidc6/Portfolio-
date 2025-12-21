@@ -64,4 +64,6 @@ export interface Profile {
   };
   experience: Experience[];
   education: Education[];
+  technicalSkills?: string;
+  currentlyLearning?: string;
 }
