@@ -117,6 +117,7 @@ const AdminDashboard: React.FC = () => {
       showMessage('success', 'Database seeded successfully!');
       refreshData();
     } catch (e: any) {
+      console.error('Seeding error:', e);
       showMessage('error', e.message || 'Error seeding database');
     } finally {
       setActionLoading(false);
@@ -245,16 +246,27 @@ const AdminDashboard: React.FC = () => {
     setActionLoading(true);
 
     try {
-      const projectData = {
-        ...editingProject,
+      // Explicitly pick fields to avoid sending extra properties like 'created_at'
+      const { id, title, description, longDescription, image, demoUrl, githubUrl, caseStudyUrl } = editingProject;
+      
+      const projectData: any = {
+        title: title || '',
+        description: description || '',
+        longDescription: longDescription || null,
+        image: image || '',
+        demoUrl: demoUrl || null,
+        githubUrl: githubUrl || null,
+        caseStudyUrl: caseStudyUrl || null,
         tags: Array.isArray(editingProject.tags) ? editingProject.tags : [],
         features: Array.isArray(editingProject.features) ? editingProject.features : [],
         gallery: Array.isArray(editingProject.gallery) ? editingProject.gallery : [],
       };
 
-      if (!projectData.id) delete projectData.id;
+      if (id) {
+        projectData.id = id;
+      }
 
-      const { error } = await supabase.from('projects').upsert(projectData as any);
+      const { error } = await supabase.from('projects').upsert(projectData);
 
       if (error) throw error;
 
@@ -262,6 +274,7 @@ const AdminDashboard: React.FC = () => {
       setIsProjectFormOpen(false);
       refreshData();
     } catch (e: any) {
+      console.error('Project save error:', e);
       showMessage('error', e.message || 'Error saving project');
     } finally {
       setActionLoading(false);
@@ -311,10 +324,23 @@ const AdminDashboard: React.FC = () => {
     setActionLoading(true);
 
     try {
-      const blogData = { ...editingBlog };
-      if (!blogData.id) delete blogData.id;
+      // Explicitly pick fields to avoid sending extra properties like 'created_at'
+      const { id, title, excerpt, date, readTime, slug, link } = editingBlog;
+      
+      const blogData: any = {
+        title: title || '',
+        excerpt: excerpt || '',
+        date: date || '',
+        readTime: readTime || '',
+        slug: slug || '',
+        link: link || null
+      };
 
-      const { error } = await supabase.from('blogs').upsert(blogData as any);
+      if (id) {
+        blogData.id = id;
+      }
+
+      const { error } = await supabase.from('blogs').upsert(blogData);
 
       if (error) throw error;
 
@@ -322,6 +348,7 @@ const AdminDashboard: React.FC = () => {
       setIsBlogFormOpen(false);
       refreshData();
     } catch (e: any) {
+      console.error('Blog save error:', e);
       showMessage('error', e.message || 'Error saving post');
     } finally {
       setActionLoading(false);
